@@ -1,184 +1,134 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath group: 'com.diluv.schoomp', name: 'Schoomp', version: '1.2.6'
-    }
-}
-
-//import com.diluv.schoomp.Webhook
-//import com.diluv.schoomp.message.Message
-
 plugins {
-    id 'java'
-    id "org.jetbrains.kotlin.jvm"
-    id 'idea'
-    id 'moreiotas.publish'
+    id "architectury-plugin" version "3.4.164"
+    id "dev.architectury.loom" version "1.9-SNAPSHOT"
+    id "org.jetbrains.kotlin.jvm" version "2.2.21"
+    id "maven-publish"
 }
 
-String getArtifactID(String platform) {
-    return "$modID-$platform-$minecraftVersion"
-}
-
-void setupJar(Object project) {
-    project.jar {
-        manifest {
-            attributes([
-                    'Specification-Title'     : modID,
-                    'Specification-Vendor'    : "talia",
-                    'Specification-Version'   : project.jar.archiveVersion,
-                    'Implementation-Title'    : project.name,
-                    'Implementation-Version'  : project.jar.archiveVersion,
-                    'Implementation-Vendor'   : "talia",
-                    'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                    'Timestamp'               : System.currentTimeMillis(),
-                    'Built-On-Java'           : "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})",
-                    'Built-On-Minecraft'      : minecraftVersion
-            ])
-        }
-    }
-
-    project.publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                groupId project.group
-                artifactId project.archivesBaseName
-                version project.version
-                from project.components.java
+def findWorkspacePath = { List relativeCandidates ->
+    def cursor = projectDir
+    while (cursor != null) {
+        for (relative in relativeCandidates) {
+            def candidate = new File(cursor, relative.toString())
+            if (candidate.exists()) {
+                return candidate
             }
         }
+        cursor = cursor.parentFile
+    }
+    return null
+}
 
-        repositories {
-            maven {
-                url = 'https://pkgs.dev.azure.com/hexxy-media/artifacts/_packaging/community/maven/v1'
-                credentials {
-                    username = 'hexxy-media'
-                    password = System.getenv('MAVEN_PASSWORD')
-                }
-            }
+def yahaDir = findWorkspacePath(["01-yaha-source/yaha", "yaha"])
+if (yahaDir == null) {
+    throw new GradleException("Unable to locate shared pre2 dependencies")
+}
+def yahaLib = { String fileName -> new File(new File(yahaDir, "libs"), fileName) }
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+architectury {
+    minecraft = project.minecraft_version
+    platformSetupLoomIde()
+    neoForge {
+        platformPackage = "neoforge"
+    }
+}
+
+loom {
+    silentMojangMappingsLicense()
+    mods {
+        main {
+            sourceSet sourceSets.main
         }
     }
 }
+
+sourceSets.main.kotlin.srcDirs += "src/main/java"
 
 repositories {
     mavenCentral()
-}
-
-subprojects {
-    apply plugin: 'java'
-    apply plugin: 'kotlin'
-    apply plugin: 'maven-publish'
-
-    repositories {
-        maven { url "https://libraries.minecraft.net/" }
-
-        mavenCentral()
-
-        maven {
-            name = 'Sponge / Mixin'
-            url = 'https://repo.spongepowered.org/repository/maven-public/'
-        }
-
-        maven {
-            name = 'BlameJared Maven'
-            url = 'https://maven.blamejared.com'
-        }
-
-        maven {
-            name = "Modrinth"
-            url = "https://api.modrinth.com/maven"
-            content {
-                includeGroup "maven.modrinth"
-            }
-        }
-
-        maven {
-            url = "https://jitpack.io"
-        }
-
-        maven {
-            url = "https://maven.shedaniel.me/"
-        }
-    }
-
-    dependencies {
-        implementation group: "org.jblas", name: "jblas", version: "1.2.5"
-        implementation group: "org.ejml", name: "ejml-simple", version: "${ejml_version}"
-        implementation group: "org.ejml", name: "ejml-core", version: "${ejml_version}"
-        implementation group: "org.ejml", name: "ejml-ddense", version: "${ejml_version}"
-    }
-
-
-    tasks.withType(JavaCompile).configureEach {
-        it.options.encoding = 'UTF-8'
-        it.options.release = 17
-    }
-
-    // Disables Gradle's custom module metadata from being published to maven. The
-    // metadata includes mapped dependencies which are not reasonably consumable by
-    // other mod developers.
-    tasks.withType(GenerateModuleMetadata) {
-        enabled = false
-    }
-
-    sourceSets.main.kotlin.srcDirs += 'src/main/java'
-
-    java.toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-        vendor = null // TODO: Not sure why this works or whether it will work on anyone else's computer
-    }
-    java.withSourcesJar()
-    java.withJavadocJar()
-
-    processResources {
-        exclude '.cache'
-    }
-    processTestResources {
-        exclude '.cache'
-    }
-    sourcesJar {
-        duplicatesStrategy 'exclude'
+    maven { url "https://maven.architectury.dev/" }
+    maven { url "https://maven.fabricmc.net/" }
+    maven { url "https://maven.neoforged.net/releases/" }
+    maven { url "https://maven.blamejared.com/" }
+    maven {
+        name = "Kotlin for Forge"
+        url = "https://thedarkcolour.github.io/KotlinForForge/"
     }
 }
 
-allprojects {
-    group = "ram.talia.$modID" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-    version = "$modVersion"
-    // archivesBaseName set in each gradle
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    neoForge "net.neoforged:neoforge:${project.neo_forge_version}"
 
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            options.compilerArgs << "-Xmaxerrs" << "1000"
-        }
+    compileOnly files(yahaLib("hexcasting-neoforge-${project.minecraft_version}-${project.hexcasting_version}.jar"))
+    runtimeOnly files(yahaLib("hexcasting-neoforge-${project.minecraft_version}-${project.hexcasting_version}.jar"))
+    runtimeOnly files(yahaLib("paucal-${project.paucal_version}+${project.minecraft_version}-neoforge.jar"))
+    runtimeOnly files(yahaLib("inline-${project.minecraft_version}-${project.inline_version}-neoforge-devruntime.jar"))
+    runtimeOnly files(yahaLib("caelus-neoforge-${project.caelus_version}.jar"))
+    runtimeOnly files(findWorkspacePath(["11-hexal-neoforge-port/libs/Patchouli-${project.patchouli_version}.jar"]))
+    runtimeOnly "thedarkcolour:kotlinforforge-neoforge:${project.forge_kotlin_version}"
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.21"
+    compileOnly "org.jetbrains:annotations:26.0.2"
+
+    implementation(include("org.ejml:ejml-core:${project.ejml_version}"))
+    implementation(include("org.ejml:ejml-ddense:${project.ejml_version}"))
+    implementation(include("org.ejml:ejml-simple:${project.ejml_version}"))
+}
+
+processResources {
+    inputs.property "version", project.version
+    filesMatching("META-INF/neoforge.mods.toml") {
+        expand "version": project.version
     }
 }
 
-compileKotlin {
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = 21
+    options.compilerArgs += ["-Xlint:-deprecation", "-Xlint:-unchecked"]
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
-        jvmTarget = "17"
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
 }
 
-tasks.register("runAllDatagen") {
-    dependsOn ":Forge:runXplatDatagen"
-    dependsOn ":Forge:runForgeDatagen"
-    dependsOn ":Fabric:runDatagen"
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
 }
 
-publishMods {
-    displayName = "v$modVersion"
+tasks.register("moreIotasCodecProbe", JavaExec) {
+    group = "verification"
+    description = "Round-trips representative MoreIotas matrix payloads without launching Minecraft."
+    dependsOn tasks.named("testClasses")
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "ram.talia.moreiotas.probe.MoreIotasCodecProbe"
+}
 
-    github {
-        repository = System.getenv("GITHUB_REPOSITORY") ?: ""
-        commitish = System.getenv("GITHUB_SHA") ?: ""
-        tagName = modVersion
-        allowEmptyFiles = true
+tasks.named("sourcesJar", Jar) {
+    exclude "META-INF/neoforge.mods.toml"
+    exclude "META-INF/mods.toml"
+    exclude "fabric.mod.json"
+    exclude "*.mixins.json"
+    exclude "**/*.mixins.json"
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = project.archives_base_name
+            from components.java
+        }
     }
 }

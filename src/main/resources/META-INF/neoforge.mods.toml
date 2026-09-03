@@ -1,0 +1,57 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+issueTrackerURL = "https://github.com/FallingColors/MoreIotas/issues"
+
+[[mods]]
+modId = "moreiotas"
+version = "${version}"
+displayName = "MoreIotas"
+displayURL = "https://github.com/FallingColors/MoreIotas"
+authors = "Talia"
+description = "Adds string, matrix, item, entity-type, and iota-type values and operations to Hex Casting."
+
+[[mixins]]
+config = "moreiotas.mixins.json"
+
+[[dependencies.moreiotas]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.234,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.moreiotas]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1]"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.moreiotas]]
+modId = "hexcasting"
+type = "required"
+versionRange = "[0.12.0-devel-pre-35,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.moreiotas]]
+modId = "paucal"
+type = "required"
+versionRange = "[0.7.1-pre-27,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.moreiotas]]
+modId = "patchouli"
+type = "required"
+versionRange = "[1.21.1-92-NEOFORGE,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.moreiotas]]
+modId = "kotlinforforge"
+type = "required"
+versionRange = "[5.12,)"
+ordering = "NONE"
+side = "BOTH"
