@@ -31,7 +31,7 @@ side = "BOTH"
 [[dependencies.moreiotas]]
 modId = "hexcasting"
 type = "required"
-versionRange = "[0.12.0-devel-pre-35,)"
+versionRange = "[0.12.0-devel-pre-53]"
 ordering = "AFTER"
 side = "BOTH"
 

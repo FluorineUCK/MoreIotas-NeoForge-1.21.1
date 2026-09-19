@@ -132,3 +132,21 @@ publishing {
         }
     }
 }
+
+// Exact real-provider regression seam for the pre39 -> pre53 migration.
+dependencies {
+    testImplementation files(yahaLib("hexcasting-neoforge-${project.minecraft_version}-${project.hexcasting_version}.jar"))
+}
+tasks.register("hexPre53PatternProbe", JavaExec) {
+    group = "verification"
+    dependsOn tasks.named("testClasses")
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "ram.talia.moreiotas.probe.HexPre53PatternProbe"
+}
+tasks.register("hexPre53RepeatedBuilderProbe", JavaExec) {
+    group = "verification"
+    dependsOn tasks.named("testClasses")
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "ram.talia.moreiotas.probe.HexPre53PatternProbe"
+    args "repeated-builder"
+}
